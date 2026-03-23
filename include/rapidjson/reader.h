@@ -963,6 +963,29 @@ private:
         SizeType length_;
     };
 
+    // Dispatch string event to handler - normal (non-raw) path
+    template<typename InputStream, typename Handler>
+    bool DispatchStringEvent(InputStream& /*s*/, Handler& handler,
+                             StackStream<typename TargetEncoding::Ch>& stackStream,
+                             bool isKey, size_t /*rawStart*/,
+                             internal::FalseType /*rawStrings*/) {
+        SizeType length = static_cast<SizeType>(stackStream.Length()) - 1;
+        const typename TargetEncoding::Ch* const str = stackStream.Pop();
+        return (isKey ? handler.Key(str, length, true) : handler.String(str, length, true));
+    }
+
+    // Dispatch string event to handler - raw string path
+    template<typename InputStream, typename Handler>
+    bool DispatchStringEvent(InputStream& s, Handler& handler,
+                             StackStream<typename TargetEncoding::Ch>& stackStream,
+                             bool isKey, size_t rawStart,
+                             internal::TrueType /*rawStrings*/) {
+        const size_t rawLen = s.Tell() - 1 - rawStart;
+        const typename SourceEncoding::Ch* rawStr = reinterpret_cast<const typename SourceEncoding::Ch*>(s.head_) + rawStart;
+        stackStream.Pop();  // discard decoded string from stack
+        return (isKey ? handler.RawKey(rawStr, SizeType(rawLen), false) : handler.RawString(rawStr, SizeType(rawLen), false));
+    }
+
     // Parse string and generate String event. Different code paths for kParseInsituFlag.
     template<unsigned parseFlags, typename InputStream, typename Handler>
     void ParseString(InputStream& is, Handler& handler, bool isKey = false) {
@@ -973,8 +996,7 @@ private:
         s.Take();  // Skip '\"'
 
         // Capture raw string start position (after the opening quote)
-        constexpr bool rawStrings = (parseFlags & kParseRawStringsFlag) != 0;
-        const size_t rawStart = rawStrings ? s.Tell() : 0;
+        const size_t rawStart = (parseFlags & kParseRawStringsFlag) ? s.Tell() : 0;
 
         bool success = false;
         if (parseFlags & kParseInsituFlag) {
@@ -991,18 +1013,8 @@ private:
             ParseStringToStream<parseFlags, SourceEncoding, TargetEncoding>(s, stackStream);
             RAPIDJSON_PARSE_ERROR_EARLY_RETURN_VOID;
 
-            // s.Tell() is now past the closing quote; raw content is [rawStart, s.Tell()-1)
-            if constexpr (rawStrings) {
-                const size_t rawLen = s.Tell() - 1 - rawStart;  // exclude closing quote
-                const typename SourceEncoding::Ch* rawStr = reinterpret_cast<const typename SourceEncoding::Ch*>(s.head_) + rawStart;
-                success = (isKey ? handler.RawKey(rawStr, SizeType(rawLen), false) : handler.RawString(rawStr, SizeType(rawLen), false));
-                stackStream.Pop();  // discard decoded string from stack
-            }
-            else {
-                SizeType length = static_cast<SizeType>(stackStream.Length()) - 1;
-                const typename TargetEncoding::Ch* const str = stackStream.Pop();
-                success = (isKey ? handler.Key(str, length, true) : handler.String(str, length, true));
-            }
+            success = DispatchStringEvent(s, handler, stackStream, isKey, rawStart,
+                                          internal::BoolType<(parseFlags & kParseRawStringsFlag) != 0>());
         }
         if (RAPIDJSON_UNLIKELY(!success))
             RAPIDJSON_PARSE_ERROR(kParseErrorTermination, s.Tell());
