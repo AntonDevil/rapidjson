@@ -2409,7 +2409,7 @@ struct RawStringsHandler {
     // 'str' is not null-terminated
     bool RawString(const char* str, SizeType length, bool) {
         EXPECT_TRUE(str != 0);
-        rawStrings.emplace_back(str, length);
+        rawStrings.push_back(std::string(str, length));
         return true;
     }
     bool StartObject() { return true; }
@@ -2417,7 +2417,7 @@ struct RawStringsHandler {
     // 'str' is not null-terminated
     bool RawKey(const char* str, SizeType length, bool) {
         EXPECT_TRUE(str != 0);
-        rawKeys.emplace_back(str, length);
+        rawKeys.push_back(std::string(str, length));
         return true;
     }
     bool EndObject(SizeType) { return true; }
@@ -2429,7 +2429,7 @@ struct RawStringsHandler {
 };
 
 TEST(Reader, RawStrings_UnicodeEscape) {
-    const char* json = R"({"key":"\u003Cscript\u003E"})";
+    const char* json = "{\"key\":\"\\u003Cscript\\u003E\"}";
     StringStream s(json);
     RawStringsHandler h;
     Reader reader;
@@ -2441,7 +2441,7 @@ TEST(Reader, RawStrings_UnicodeEscape) {
 }
 
 TEST(Reader, RawStrings_EscapedForwardSlash) {
-    const char* json = R"({"date":"\/Date(123)\/"})";
+    const char* json = "{\"date\":\"\\/Date(123)\\/\"}";
     StringStream s(json);
     RawStringsHandler h;
     Reader reader;
@@ -2451,7 +2451,7 @@ TEST(Reader, RawStrings_EscapedForwardSlash) {
 }
 
 TEST(Reader, RawStrings_StandardEscapes) {
-    const char* json = R"({"text":"line1\nline2\ttab\\back\"quote"})";
+    const char* json = "{\"text\":\"line1\\nline2\\ttab\\\\back\\\"quote\"}";
     StringStream s(json);
     RawStringsHandler h;
     Reader reader;
@@ -2461,7 +2461,7 @@ TEST(Reader, RawStrings_StandardEscapes) {
 }
 
 TEST(Reader, RawStrings_SurrogatePair) {
-    const char* json = R"({"emoji":"\ud83d\ude00"})";
+    const char* json = "{\"emoji\":\"\\ud83d\\ude00\"}";
     StringStream s(json);
     RawStringsHandler h;
     Reader reader;
@@ -2471,7 +2471,7 @@ TEST(Reader, RawStrings_SurrogatePair) {
 }
 
 TEST(Reader, RawStrings_PlainAscii) {
-    const char* json = R"({"name":"John"})";
+    const char* json = "{\"name\":\"John\"}";
     StringStream s(json);
     RawStringsHandler h;
     Reader reader;
@@ -2483,7 +2483,7 @@ TEST(Reader, RawStrings_PlainAscii) {
 }
 
 TEST(Reader, RawStrings_EmptyString) {
-    const char* json = R"({"key":""})";
+    const char* json = "{\"key\":\"\"}";
     StringStream s(json);
     RawStringsHandler h;
     Reader reader;
@@ -2493,7 +2493,7 @@ TEST(Reader, RawStrings_EmptyString) {
 }
 
 TEST(Reader, RawStrings_MultipleValues) {
-    const char* json = R"({"a":"\u0041","b":"plain","c":"\/slash\/"})";
+    const char* json = "{\"a\":\"\\u0041\",\"b\":\"plain\",\"c\":\"\\/slash\\/\"}";
     StringStream s(json);
     RawStringsHandler h;
     Reader reader;
@@ -2509,7 +2509,7 @@ TEST(Reader, RawStrings_MultipleValues) {
 }
 
 TEST(Reader, RawStrings_Array) {
-    const char* json = R"(["\u003Ca\u003E","normal"])";
+    const char* json = "[\"\\u003Ca\\u003E\",\"normal\"]";
     StringStream s(json);
     RawStringsHandler h;
     Reader reader;
@@ -2520,7 +2520,7 @@ TEST(Reader, RawStrings_Array) {
 }
 
 TEST(Reader, RawStrings_KeysWithEscapes) {
-    const char* json = R"({"\u006B\u0065\u0079":"value"})";
+    const char* json = "{\"\\u006B\\u0065\\u0079\":\"value\"}";
     StringStream s(json);
     RawStringsHandler h;
     Reader reader;
@@ -2532,7 +2532,7 @@ TEST(Reader, RawStrings_KeysWithEscapes) {
 TEST(Reader, RawStrings_ValidationStillWorks) {
     // Invalid escape \x - must still fail
     {
-        const char* json = R"({"key":"\x00"})";
+        const char* json = "{\"key\":\"\\x00\"}";
         StringStream s(json);
         RawStringsHandler h;
         Reader reader;
@@ -2541,7 +2541,7 @@ TEST(Reader, RawStrings_ValidationStillWorks) {
     }
     // Lone high surrogate - must still fail
     {
-        const char* json = R"({"key":"\ud800"})";
+        const char* json = "{\"key\":\"\\ud800\"}";
         StringStream s(json);
         RawStringsHandler h;
         Reader reader;
@@ -2550,7 +2550,7 @@ TEST(Reader, RawStrings_ValidationStillWorks) {
     }
     // Unterminated string - must still fail
     {
-        const char* json = R"({"key":"unterminated)";
+        const char* json = "{\"key\":\"unterminated";
         StringStream s(json);
         RawStringsHandler h;
         Reader reader;
@@ -2561,7 +2561,7 @@ TEST(Reader, RawStrings_ValidationStillWorks) {
 
 TEST(Reader, RawStrings_CombinedWithOtherFlags) {
     // kParseRawStringsFlag combined with kParseNumbersAsStringsFlag
-    const char* json = R"({"num":42,"str":"\u0041"})";
+    const char* json = "{\"num\":42,\"str\":\"\\u0041\"}";
     StringStream s(json);
     RawStringsHandler h;
     Reader reader;

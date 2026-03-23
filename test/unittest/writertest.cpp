@@ -635,7 +635,7 @@ TEST(Writer, RawString) {
     writer.RawString("\\u003Cscript\\u003E", 19);
     writer.EndObject();
     EXPECT_TRUE(writer.IsComplete());
-    EXPECT_STREQ(R"({"key":"\u003Cscript\u003E"})", buffer.GetString());
+    EXPECT_STREQ("{\"key\":\"\\u003Cscript\\u003E\"}", buffer.GetString());
 }
 
 TEST(Writer, RawKey) {
@@ -646,7 +646,7 @@ TEST(Writer, RawKey) {
     writer.String("value", 5);
     writer.EndObject();
     EXPECT_TRUE(writer.IsComplete());
-    EXPECT_STREQ(R"({"\u006B\u0065\u0079":"value"})", buffer.GetString());
+    EXPECT_STREQ("{\"\\u006B\\u0065\\u0079\":\"value\"}", buffer.GetString());
 }
 
 TEST(Writer, RawString_EscapedSlash) {
@@ -657,7 +657,7 @@ TEST(Writer, RawString_EscapedSlash) {
     writer.RawString("\\/Date(123)\\/", 13);
     writer.EndObject();
     EXPECT_TRUE(writer.IsComplete());
-    EXPECT_STREQ(R"({"date":"\/Date(123)\/"})", buffer.GetString());
+    EXPECT_STREQ("{\"date\":\"\\/Date(123)\\/\"}", buffer.GetString());
 }
 
 TEST(Writer, RawString_EmptyString) {
@@ -667,12 +667,12 @@ TEST(Writer, RawString_EmptyString) {
     writer.RawString("", 0);
     writer.EndArray();
     EXPECT_TRUE(writer.IsComplete());
-    EXPECT_STREQ(R"([""])", buffer.GetString());
+    EXPECT_STREQ("[\"\"]", buffer.GetString());
 }
 
 TEST(Writer, RawString_RoundTrip) {
     // Parse with kParseRawStringsFlag, write back - output should match input
-    const char* json = R"({"a":"\u003Cb\u003E","c":"\/path\/"})";
+    const char* json = "{\"a\":\"\\u003Cb\\u003E\",\"c\":\"\\/path\\/\"}";
     StringBuffer sb;
     Writer<StringBuffer> writer(sb);
     Reader reader;

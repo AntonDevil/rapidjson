@@ -397,7 +397,7 @@ TEST(PrettyWriter, RawKey) {
 
 TEST(PrettyWriter, RawString_RoundTrip) {
     // Parse with kParseRawStringsFlag → PrettyWriter → verify escapes preserved
-    const char* json = R"({"tag":"\u003Cb\u003E","date":"\/Date(123)\/"})";
+    const char* json = "{\"tag\":\"\\u003Cb\\u003E\",\"date\":\"\\/Date(123)\\/\"}";
     StringBuffer sb;
     PrettyWriter<StringBuffer> writer(sb);
     writer.SetIndent(' ', 2);
