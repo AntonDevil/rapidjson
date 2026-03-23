@@ -374,7 +374,7 @@ TEST(PrettyWriter, RawString) {
     writer.SetIndent(' ', 2);
     writer.StartObject();
     writer.Key("key");
-    writer.RawString("\\u003Cscript\\u003E", 19);
+    writer.RawString("\\u003Cscript\\u003E", 18);
     writer.EndObject();
     EXPECT_TRUE(writer.IsComplete());
     const char* s = buffer.GetString();

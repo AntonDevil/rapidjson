@@ -632,7 +632,7 @@ TEST(Writer, RawString) {
     Writer<StringBuffer> writer(buffer);
     writer.StartObject();
     writer.Key("key", 3);
-    writer.RawString("\\u003Cscript\\u003E", 19);
+    writer.RawString("\\u003Cscript\\u003E", 18);
     writer.EndObject();
     EXPECT_TRUE(writer.IsComplete());
     EXPECT_STREQ("{\"key\":\"\\u003Cscript\\u003E\"}", buffer.GetString());
